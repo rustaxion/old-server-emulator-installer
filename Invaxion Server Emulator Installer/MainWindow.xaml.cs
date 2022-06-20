@@ -149,11 +149,11 @@ namespace Invaxion_Server_Emulator_Installer
                         var progress = $"{progressPercentage}% ({FormatFileSize(totalBytesDownloaded)}/{FormatFileSize((long)totalFileSize)})";
                         if (progressPercentage < 100)
                         {
-                            Console.WriteLine($"Downloading {name} {progress}");
+                            Console.WriteLine($"Downloading {name} | {progress}");
                         }
                         else
                         {
-                            Console.WriteLine($"Downloading {name} {progress}");
+                            Console.WriteLine($"Downloading {name} | {progress}");
                             _BepinExInstallDebouncer = new Debouncer(TimeSpan.FromSeconds(.2), () =>
                                 {
                                     this.Dispatcher.Invoke(() =>
@@ -198,11 +198,11 @@ namespace Invaxion_Server_Emulator_Installer
 
                         if (progressPercentage < 100)
                         {
-                            Console.WriteLine($"Downloading {name} {progress}");
+                            Console.WriteLine($"Downloading {name} | {progress}");
                         }
                         else
                         {
-                            Console.WriteLine($"Downloading {name} {progress}");
+                            Console.WriteLine($"Downloading {name} | {progress}");
 
                             _BepinExInstallDebouncer = new Debouncer(TimeSpan.FromSeconds(.2), () =>
                             {
@@ -220,7 +220,7 @@ namespace Invaxion_Server_Emulator_Installer
                                         Path.Combine(SelectedFolder, "INVAXION_Data", "Plugins", "discord_game_sdk.dll"),
                                         true
                                     );
-                                    CleanUp();
+                                    StartModDownload();
                                 });
                             });
                             _BepinExInstallDebouncer.Invoke();
@@ -228,6 +228,95 @@ namespace Invaxion_Server_Emulator_Installer
                     };
                     await client.StartDownload();
                 });
+            thread.Start();
+        }
+
+        private void StartModDownload()
+        {
+            var name = "Invaxion Server Emu@latest";
+            var downloadLink = "https://github.com/Invaxion-Server-Emulator/invaxion-server-emulator/releases/download/latest/ServerEmulator.dll";
+            var downloadPath = Path.Combine(SelectedFolder, "BepInEx", "Plugins", "ServerEmulator.dll");
+
+            if (!Directory.Exists(Path.Combine(SelectedFolder, "BepInEx", "Plugins")))
+            {
+                Directory.CreateDirectory(Path.Combine(SelectedFolder, "BepInEx", "Plugins"));
+            }
+
+            Thread thread = new(async () =>
+            {
+                HttpClientDownloadWithProgress client = new(downloadLink, downloadPath);
+                client.ProgressChanged += (totalFileSize, totalBytesDownloaded, progressPercentage) =>
+                {
+                    var progress = $"{ progressPercentage }% ({ FormatFileSize(totalBytesDownloaded)}/{ FormatFileSize((long)totalFileSize)})";
+
+                    if (progressPercentage < 100)
+                    {
+                        Console.WriteLine($"Downloading {name} | {progress}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Downloading {name} | {progress}");
+
+                        _BepinExInstallDebouncer = new Debouncer(TimeSpan.FromSeconds(.2), () =>
+                        {
+                            this.Dispatcher.Invoke(() =>
+                            {
+                                Console.WriteLine("Downloaded ServerEmulator.dll");
+                                PBar.IsIndeterminate = false;
+                                PBar.Value = 100;
+                                DownloadGamePatches();
+                            });
+                        });
+                        _BepinExInstallDebouncer.Invoke();
+                    }
+                };
+                await client.StartDownload();
+            });
+            thread.Start();
+        }
+
+        private void DownloadGamePatches()
+        {
+            var name = "Game patches v6.0";
+            var downloadLink = "https://github.com/Invaxion-Server-Emulator/patches/archive/refs/heads/main.zip";
+            var downloadPath = $"{Path.GetTempPath()}\\INVAXION_patches.zip";
+
+            Thread thread = new(async () =>
+            {
+                HttpClientDownloadWithProgress client = new(downloadLink, downloadPath);
+                client.ProgressChanged += (totalFileSize, totalBytesDownloaded, progressPercentage) =>
+                {
+                    var progress = $"{ progressPercentage }% ({ FormatFileSize(totalBytesDownloaded)}/{ FormatFileSize(8200791) })";
+
+                    if (progressPercentage < 100)
+                    {
+                        Console.WriteLine($"Downloading '{name}' | {progress}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Downloading '{name}' | {progress}");
+
+                        _BepinExInstallDebouncer = new Debouncer(TimeSpan.FromSeconds(.2), () =>
+                        {
+                            this.Dispatcher.Invoke(() =>
+                            {
+                                Console.WriteLine("Downloaded INVAXION_patches.zip");
+                                PBar.IsIndeterminate = false;
+                                PBar.Value = 100;
+                                ZipFile.ExtractToDirectory(downloadPath, SelectedFolder, true);
+                                Thread.Sleep(1000);
+                                foreach (var item in Directory.EnumerateFiles(Path.Combine(SelectedFolder, "patches-main")))
+                                {
+                                    Directory.Move(item, SelectedFolder);
+                                }
+                                CleanUp();
+                            });
+                        });
+                        _BepinExInstallDebouncer.Invoke();
+                    }
+                };
+                await client.StartDownload();
+            });
             thread.Start();
         }
 
