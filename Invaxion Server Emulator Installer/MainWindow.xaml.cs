@@ -21,7 +21,7 @@ namespace Invaxion_Server_Emulator_Installer
         TextBoxOutputter outputter;
 
         private string SelectedFolder = "";
-
+        public static Label statusLabel;
         private Boolean AutoScroll = true;
 
         private void ScrollViewer_ScrollChanged(Object sender, ScrollChangedEventArgs e)
@@ -47,6 +47,12 @@ namespace Invaxion_Server_Emulator_Installer
                 // Autoscroll
                 ScrollViewer.ScrollToVerticalOffset(ScrollViewer.ExtentHeight);
             }
+
+            if (e.ExtentHeightChange != 0)
+            {
+                var lines = outputter.LogBlock.Text.Split("\n");
+                statusLabel.Content = lines[lines.Length - 2];
+            }
         }
 
         public MainWindow()
@@ -60,7 +66,8 @@ namespace Invaxion_Server_Emulator_Installer
             {
                 _StartInstall.IsEnabled = false;
             }
-            ;
+
+            statusLabel = FindName("_statusText") as Label;
         }
 
         private void SelectInstallFolder(object sender, RoutedEventArgs e)

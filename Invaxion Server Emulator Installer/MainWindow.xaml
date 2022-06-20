@@ -19,6 +19,8 @@
         <Label Grid.Row="0" Grid.Column="0" Margin="5,12,0,0" Name="_dialogLabel" HorizontalAlignment="Left" VerticalAlignment="Top" Grid.RowSpan="2">_Select game directory:</Label>
         <TextBox Name="InstallPath" Height="18" TextChanged="InstallPathTextChanged" Text="C:\Program Files\INVAXION" Background="White" TextWrapping="WrapWithOverflow" Grid.ColumnSpan="2" Margin="8,45,0,0" Grid.RowSpan="1" Grid.Row="1"/>
         <Button Grid.Column="2" Padding="8,0" Name="_showDialogButton" IsDefault="True" Click="SelectInstallFolder" Content="Browse" Grid.Row="1" Margin="8,45,8,0" Grid.RowSpan="1" Height="17.96"/>
+        <Label Grid.Row="2" Grid.Column="0" Name="_statusLabel" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="8,0,0,0">_Status:</Label>
+        <Label Grid.Row="2" Grid.Column="0" Name="_statusText" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="51,0,0,0" Grid.ColumnSpan="3" Width="407">Idle</Label>
         <ProgressBar Name="PBar" VerticalAlignment="Top" Height="15" SmallChange="0" Grid.ColumnSpan="3" Margin="8,0,8,0" Grid.RowSpan="2">
             <ProgressBar.RenderTransform>
                 <TransformGroup>
