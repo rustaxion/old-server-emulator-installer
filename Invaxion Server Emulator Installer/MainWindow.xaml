@@ -1,0 +1,74 @@
+﻿<Window x:Class="Invaxion_Server_Emulator_Installer.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" mc:Ignorable="d" Title="INVAXION Server Emulator Installer" Height="394" Width="508"
+    xmlns:local="clr-namespace:Invaxion_Server_Emulator_Installer" ResizeMode="CanMinimize">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="276.318"/>
+            <ColumnDefinition Width="131.682"/>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto"/>
+        </Grid.ColumnDefinitions>
+        <Label Grid.Row="0" Grid.Column="0" Margin="5,12,0,0" Name="_dialogLabel" HorizontalAlignment="Left" VerticalAlignment="Top" Grid.RowSpan="2">_Select game directory:</Label>
+        <TextBox Name="InstallPath" Height="18" TextChanged="InstallPathTextChanged" Text="C:\Program Files\INVAXION" Background="White" TextWrapping="WrapWithOverflow" Grid.ColumnSpan="2" Margin="8,45,0,0" Grid.RowSpan="1" Grid.Row="1"/>
+        <Button Grid.Column="2" Padding="8,0" Name="_showDialogButton" IsDefault="True" Click="SelectInstallFolder" Content="Browse" Grid.Row="1" Margin="8,45,8,0" Grid.RowSpan="1" Height="17.96"/>
+        <ProgressBar Name="PBar" VerticalAlignment="Top" Height="15" SmallChange="0" Grid.ColumnSpan="3" Margin="8,0,8,0" Grid.RowSpan="2">
+            <ProgressBar.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform/>
+                    <SkewTransform/>
+                    <RotateTransform/>
+                    <TranslateTransform X="0" Y="86"/>
+                </TransformGroup>
+            </ProgressBar.RenderTransform>
+        </ProgressBar>
+        <ScrollViewer Name="ScrollViewer" RenderTransformOrigin="0.5,0.5" Grid.Row="2" Grid.ColumnSpan="3" Margin="8,0,8,0" Width="476" Height="200" Grid.RowSpan="2" VerticalScrollBarVisibility="Visible" ScrollChanged="ScrollViewer_ScrollChanged">
+            <ScrollViewer.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform/>
+                    <SkewTransform/>
+                    <RotateTransform/>
+                    <TranslateTransform Y="49"/>
+                </TransformGroup>
+            </ScrollViewer.RenderTransform>
+            <Border BorderThickness="1.25" BorderBrush="{DynamicResource {x:Static SystemColors.AppWorkspaceBrushKey}}" Width="457">
+                <Border.RenderTransform>
+                    <TransformGroup>
+                        <ScaleTransform/>
+                        <SkewTransform/>
+                        <RotateTransform/>
+                        <TranslateTransform X="0"/>
+                    </TransformGroup>
+                </Border.RenderTransform>
+                <TextBlock Name="ProgressLog" Text="" Grid.Row="2" TextWrapping="Wrap" Grid.ColumnSpan="3" Width="447"  >
+                    <TextBlock.RenderTransform>
+                        <TransformGroup>
+                            <ScaleTransform/>
+                            <SkewTransform/>
+                            <RotateTransform/>
+                            <TranslateTransform Y="0" X="0"/>
+                        </TransformGroup>
+                    </TextBlock.RenderTransform>
+                </TextBlock>
+
+            </Border>
+        </ScrollViewer>
+        <Button Grid.Column="2" Padding="8,0" Name="_StartInstall" IsDefault="False" Click="StartInstall" Content="Install" Grid.Row="3" Margin="8,8,8,8" Grid.RowSpan="1" Height="17.96" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+            <Button.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform/>
+                    <SkewTransform/>
+                    <RotateTransform/>
+                    <TranslateTransform Y="174"/>
+                </TransformGroup>
+            </Button.RenderTransform>
+        </Button>
+    </Grid>
+</Window>
