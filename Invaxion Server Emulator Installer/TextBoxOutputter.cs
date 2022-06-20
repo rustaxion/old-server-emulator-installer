@@ -7,7 +7,7 @@ namespace Invaxion_Server_Emulator_Installer
 {
     public class TextBoxOutputter : TextWriter
     {
-        private TextBlock LogBlock = null;
+        public TextBlock LogBlock = null;
 
         public TextBoxOutputter(TextBlock output)
         {
