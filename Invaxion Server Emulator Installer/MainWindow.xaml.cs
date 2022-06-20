@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Ookii.Dialogs.Wpf;
+using System;
 using System.IO;
 using System.IO.Compression;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using Ookii.Dialogs.Wpf;
 
 namespace Invaxion_Server_Emulator_Installer
 {
@@ -113,8 +113,12 @@ namespace Invaxion_Server_Emulator_Installer
             _InstallPathDebouncer.Invoke();
         }
 
+        private bool ExitBtnEnabled = false;
+
         private void StartInstall(object sender, EventArgs e)
         {
+            if (ExitBtnEnabled) Application.Current.Shutdown();
+
             PBar.IsIndeterminate = true;
             StartBepinExDownload();
         }
@@ -133,57 +137,107 @@ namespace Invaxion_Server_Emulator_Installer
 
         private void StartBepinExDownload()
         {
-            Thread thread =
-                new(async () =>
+            var name = "BepinEx v5.4.19.0";
+            var downloadPath = $"{Path.GetTempPath()}\\BepInEx_x64_5.4.19.0.zip";
+            var downloadLink = "https://github.com/BepInEx/BepInEx/releases/download/v5.4.19/BepInEx_x64_5.4.19.0.zip";
+
+            Thread thread = new(async () =>
                 {
-                    HttpClientDownloadWithProgress client =
-                        new(
-                            "https://github.com/BepInEx/BepInEx/releases/download/v5.4.19/BepInEx_x64_5.4.19.0.zip",
-                            $"{System.IO.Path.GetTempPath()}\\BepInEx_x64_5.4.19.0.zip"
-                        );
-                    client.ProgressChanged += (
-                        totalFileSize,
-                        totalBytesDownloaded,
-                        progressPercentage
-                    ) =>
+                    HttpClientDownloadWithProgress client = new(downloadLink, downloadPath);
+                    client.ProgressChanged += (totalFileSize, totalBytesDownloaded, progressPercentage) =>
                     {
+                        var progress = $"{progressPercentage}% ({FormatFileSize(totalBytesDownloaded)}/{FormatFileSize((long)totalFileSize)})";
                         if (progressPercentage < 100)
                         {
-                            Console.WriteLine(
-                                $"Downloading BepinEx v5.4.19.0 {progressPercentage}% ({FormatFileSize(totalBytesDownloaded)}/{FormatFileSize((long)totalFileSize)})"
-                            );
+                            Console.WriteLine($"Downloading {name} {progress}");
                         }
                         else
                         {
-                            Console.WriteLine(
-                                $"Downloading BepinEx v5.4.19.0 {progressPercentage}% ({FormatFileSize(totalBytesDownloaded)}/{FormatFileSize((long)totalFileSize)})"
-                            );
-                            _BepinExInstallDebouncer = new Debouncer(
-                                TimeSpan.FromSeconds(.2),
-                                () =>
+                            Console.WriteLine($"Downloading {name} {progress}");
+                            _BepinExInstallDebouncer = new Debouncer(TimeSpan.FromSeconds(.2), () =>
                                 {
                                     this.Dispatcher.Invoke(() =>
                                     {
-                                        ZipFile.ExtractToDirectory(
-                                            $"{System.IO.Path.GetTempPath()}\\BepInEx_x64_5.4.19.0.zip",
-                                            SelectedFolder, true
-                                        );
+                                        ZipFile.ExtractToDirectory(downloadPath, SelectedFolder, true);
                                         Console.WriteLine("Extracting BepinEx v5.4.19.0 to install directory");
+
                                         PBar.IsIndeterminate = false;
                                         PBar.Value = 100;
+
                                         Console.WriteLine("Extracted BepinEx v5.4.19.0 to install directory");
+                                        StartDiscordGameSDKDownload();
                                     });
                                 }
                             );
-
                             _BepinExInstallDebouncer.Invoke();
                         }
-                        ;
                     };
                     await client.StartDownload();
                 });
             thread.Start();
-            ;
+        }
+
+        private void StartDiscordGameSDKDownload()
+        {
+            var name = "Discord Game SDK v2.5.6";
+            var downloadLink = "https://dl-game-sdk.discordapp.net/2.5.6/discord_game_sdk.zip";
+            var downloadPath = $"{Path.GetTempPath()}\\discord_game_sdk_2.5.6.zip";
+            var extractionPath = $"{Path.GetTempPath()}\\discord_game_sdk_2.5.6";
+
+            if (!Directory.Exists(extractionPath))
+            {
+                Directory.CreateDirectory(extractionPath);
+            }
+
+            Thread thread = new(async () =>
+                {
+                    HttpClientDownloadWithProgress client = new(downloadLink, downloadPath);
+                    client.ProgressChanged += (totalFileSize, totalBytesDownloaded, progressPercentage) =>
+                    {
+                        var progress = $"{ progressPercentage }% ({ FormatFileSize(totalBytesDownloaded)}/{ FormatFileSize((long)totalFileSize)})";
+
+                        if (progressPercentage < 100)
+                        {
+                            Console.WriteLine($"Downloading {name} {progress}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Downloading {name} {progress}");
+
+                            _BepinExInstallDebouncer = new Debouncer(TimeSpan.FromSeconds(.2), () =>
+                            {
+                                this.Dispatcher.Invoke(() =>
+                                {
+                                    ZipFile.ExtractToDirectory(downloadPath, extractionPath, true);
+
+                                    Console.WriteLine("Extracting discord_game_sdk_2.5.6.zip");
+                                    PBar.IsIndeterminate = false;
+                                    PBar.Value = 100;
+                                    Console.WriteLine("Extracted discord_game_sdk_2.5.6.zip");
+
+                                    File.Copy(
+                                        Path.Combine(extractionPath, "lib", "x86_64", "discord_game_sdk.dll"),
+                                        Path.Combine(SelectedFolder, "INVAXION_Data", "Plugins", "discord_game_sdk.dll"),
+                                        true
+                                    );
+                                    CleanUp();
+                                });
+                            });
+                            _BepinExInstallDebouncer.Invoke();
+                        }
+                    };
+                    await client.StartDownload();
+                });
+            thread.Start();
+        }
+
+        private void CleanUp()
+        {
+            _StartInstall.IsEnabled = false;
+            _StartInstall.Content = "Exit";
+            _StartInstall.Name = "ExitBtn";
+            ExitBtnEnabled = true;
+            _StartInstall.IsEnabled = true;
         }
     }
 }
