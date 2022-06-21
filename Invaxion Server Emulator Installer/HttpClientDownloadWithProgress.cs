@@ -12,11 +12,7 @@ namespace Invaxion_Server_Emulator_Installer
 
         private HttpClient _httpClient;
 
-        public delegate void ProgressChangedHandler(
-            long? totalFileSize,
-            long totalBytesDownloaded,
-            double? progressPercentage
-        );
+        public delegate void ProgressChangedHandler(long? totalFileSize, long totalBytesDownloaded, double? progressPercentage);
 
         public event ProgressChangedHandler ProgressChanged;
 
@@ -30,10 +26,7 @@ namespace Invaxion_Server_Emulator_Installer
         {
             _httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(15) };
 
-            using var response = await _httpClient.GetAsync(
-                _downloadUrl,
-                HttpCompletionOption.ResponseHeadersRead
-            );
+            using var response = await _httpClient.GetAsync(_downloadUrl, HttpCompletionOption.ResponseHeadersRead);
             await DownloadFileFromHttpResponseMessage(response);
         }
 
@@ -54,14 +47,7 @@ namespace Invaxion_Server_Emulator_Installer
             var buffer = new byte[8192];
             var isMoreToRead = true;
 
-            using var fileStream = new FileStream(
-                _destinationFilePath,
-                FileMode.Create,
-                FileAccess.Write,
-                FileShare.None,
-                8192,
-                true
-            );
+            using var fileStream = new FileStream(_destinationFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
             do
             {
                 var bytesRead = await contentStream.ReadAsync(buffer);
@@ -89,10 +75,7 @@ namespace Invaxion_Server_Emulator_Installer
 
             double? progressPercentage = null;
             if (totalDownloadSize.HasValue)
-                progressPercentage = Math.Round(
-                    (double)totalBytesRead / totalDownloadSize.Value * 100,
-                    2
-                );
+                progressPercentage = Math.Round((double)totalBytesRead / totalDownloadSize.Value * 100, 2);
 
             ProgressChanged(totalDownloadSize, totalBytesRead, progressPercentage);
         }
