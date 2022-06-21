@@ -1,6 +1,6 @@
 ﻿using System;
-using System.Net.Http;
 using System.IO;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace Invaxion_Server_Emulator_Installer
@@ -28,15 +28,13 @@ namespace Invaxion_Server_Emulator_Installer
 
         public async Task StartDownload()
         {
-            _httpClient = new HttpClient { Timeout = TimeSpan.FromDays(1) };
+            _httpClient = new HttpClient { Timeout = TimeSpan.FromMinutes(15) };
 
-            using (
-                var response = await _httpClient.GetAsync(
-                    _downloadUrl,
-                    HttpCompletionOption.ResponseHeadersRead
-                )
-            )
-                await DownloadFileFromHttpResponseMessage(response);
+            using var response = await _httpClient.GetAsync(
+                _downloadUrl,
+                HttpCompletionOption.ResponseHeadersRead
+            );
+            await DownloadFileFromHttpResponseMessage(response);
         }
 
         private async Task DownloadFileFromHttpResponseMessage(HttpResponseMessage response)
@@ -45,8 +43,8 @@ namespace Invaxion_Server_Emulator_Installer
 
             var totalBytes = response.Content.Headers.ContentLength;
 
-            using (var contentStream = await response.Content.ReadAsStreamAsync())
-                await ProcessContentStream(totalBytes, contentStream);
+            using var contentStream = await response.Content.ReadAsStreamAsync();
+            await ProcessContentStream(totalBytes, contentStream);
         }
 
         private async Task ProcessContentStream(long? totalDownloadSize, Stream contentStream)
@@ -56,36 +54,32 @@ namespace Invaxion_Server_Emulator_Installer
             var buffer = new byte[8192];
             var isMoreToRead = true;
 
-            using (
-                var fileStream = new FileStream(
-                    _destinationFilePath,
-                    FileMode.Create,
-                    FileAccess.Write,
-                    FileShare.None,
-                    8192,
-                    true
-                )
-            )
+            using var fileStream = new FileStream(
+                _destinationFilePath,
+                FileMode.Create,
+                FileAccess.Write,
+                FileShare.None,
+                8192,
+                true
+            );
+            do
             {
-                do
+                var bytesRead = await contentStream.ReadAsync(buffer);
+                if (bytesRead == 0)
                 {
-                    var bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length);
-                    if (bytesRead == 0)
-                    {
-                        isMoreToRead = false;
-                        TriggerProgressChanged(totalDownloadSize, totalBytesRead);
-                        continue;
-                    }
+                    isMoreToRead = false;
+                    TriggerProgressChanged(totalDownloadSize, totalBytesRead);
+                    continue;
+                }
 
-                    await fileStream.WriteAsync(buffer, 0, bytesRead);
+                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
 
-                    totalBytesRead += bytesRead;
-                    readCount += 1;
+                totalBytesRead += bytesRead;
+                readCount += 1;
 
-                    if (readCount % 100 == 0)
-                        TriggerProgressChanged(totalDownloadSize, totalBytesRead);
-                } while (isMoreToRead);
-            }
+                if (readCount % 100 == 0)
+                    TriggerProgressChanged(totalDownloadSize, totalBytesRead);
+            } while (isMoreToRead);
         }
 
         private void TriggerProgressChanged(long? totalDownloadSize, long totalBytesRead)
