@@ -82,6 +82,7 @@ namespace Invaxion_Server_Emulator_Installer
                 {
                     lines[^2] = $"Downloading {name} | {progress}";
                     outputter.LogBlock.Text = String.Join("\n", lines);
+                    statusLabel.Content = lines[^2];
                 }
                 else
                 {
@@ -94,6 +95,7 @@ namespace Invaxion_Server_Emulator_Installer
                 {
                     lines[^2] = $"Downloading {name} | {progress}";
                     outputter.LogBlock.Text = String.Join("\n", lines);
+                    statusLabel.Content = lines[^2];
                 }
                 else
                 {
@@ -343,7 +345,7 @@ namespace Invaxion_Server_Emulator_Installer
         private void DownloadGamePatches()
         {
             var name = "Game patches v6.0";
-            var downloadLink = "https://github.com/Invaxion-Server-Emulator/patches/archive/refs/heads/main.zip";
+            var downloadLink = "https://github.com/Invaxion-Server-Emulator/patches/releases/download/latest/patches-main.zip";
             var downloadPath = Path.Combine(Path.GetTempPath(), "INVAXION_patches.zip");
             var extractionPath = Path.Combine(Path.GetTempPath(), "INVAXION_patches");
 
@@ -378,6 +380,21 @@ namespace Invaxion_Server_Emulator_Installer
                                                 {
                                                     Console.WriteLine("Extracting INVAXION_patches.zip");
                                                     ZipFile.ExtractToDirectory(downloadPath, extractionPath, true);
+                                                    foreach (string dir in System.IO.Directory.GetDirectories(Path.Combine(extractionPath, "patches-main"), "*", System.IO.SearchOption.AllDirectories))
+                                                    {
+                                                        System.IO.Directory.CreateDirectory(
+                                                            System.IO.Path.Combine(SelectedFolder, dir.Substring(Path.Combine(extractionPath, "patches-main").Length + 1))
+                                                        );
+                                                    }
+
+                                                    foreach (string file_name in System.IO.Directory.GetFiles(Path.Combine(extractionPath, "patches-main"), "*", System.IO.SearchOption.AllDirectories))
+                                                    {
+                                                        System.IO.File.Copy(
+                                                            file_name,
+                                                            System.IO.Path.Combine(SelectedFolder, file_name.Substring(Path.Combine(extractionPath, "patches-main").Length + 1)),
+                                                            true
+                                                        );
+                                                    }
                                                 }
                                                 catch (Exception exception)
                                                 {
@@ -385,6 +402,7 @@ namespace Invaxion_Server_Emulator_Installer
                                                     throw;
                                                 }
                                                 Console.WriteLine("Extracted INVAXION_patches.zip");
+
                                                 PBar.IsIndeterminate = false;
                                                 PBar.Value = 100;
                                                 CleanUp();
