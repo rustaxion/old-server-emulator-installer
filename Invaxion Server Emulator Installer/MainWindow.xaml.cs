@@ -72,16 +72,33 @@ namespace Invaxion_Server_Emulator_Installer
             statusLabel = FindName("_statusText") as Label;
         }
 
-        private static void LogProgress(string name, long totalFileSize, long totalBytesDownloaded, double progressPercentage, Action onComplete)
+        private void LogProgress(string name, long totalFileSize, long totalBytesDownloaded, double progressPercentage, Action onComplete)
         {
             var progress = $"{progressPercentage}% ({FormatFileSize(totalBytesDownloaded)}/{FormatFileSize((long)totalFileSize)})";
+            var lines = outputter.LogBlock.Text.Split("\n");
             if (progressPercentage < 100)
             {
-                Console.WriteLine($"Downloading {name} | {progress}");
+                if (lines[^2].StartsWith($"Downloading {name} | "))
+                {
+                    lines[^2] = $"Downloading {name} | {progress}";
+                    outputter.LogBlock.Text = String.Join("\n", lines);
+                }
+                else
+                {
+                    Console.WriteLine($"Downloading {name} | {progress}");
+                }
             }
             else
             {
-                Console.WriteLine($"Downloading {name} | {progress}");
+                if (lines[^2].StartsWith($"Downloading {name} | "))
+                {
+                    lines[^2] = $"Downloading {name} | {progress}";
+                    outputter.LogBlock.Text = String.Join("\n", lines);
+                }
+                else
+                {
+                    Console.WriteLine($"Downloading {name} | {progress}");
+                }
                 onComplete();
             }
         }
@@ -186,30 +203,33 @@ namespace Invaxion_Server_Emulator_Installer
                     HttpClientDownloadWithProgress client = new(downloadLink, downloadPath);
                     client.ProgressChanged += (totalFileSize, totalBytesDownloaded, progressPercentage) =>
                     {
-                        LogProgress(
-                            name,
-                            (long)totalFileSize,
-                            (long)totalBytesDownloaded,
-                            (double)progressPercentage,
-                            () =>
-                            {
-                                _BepinExInstallDebouncer = new Debouncer(
-                                    TimeSpan.FromSeconds(.2),
-                                    () =>
-                                    {
-                                        this.Dispatcher.Invoke(() =>
+                        this.Dispatcher.Invoke(() =>
+                        {
+                            LogProgress(
+                                name,
+                                totalFileSize ?? long.Parse("0"),
+                                totalBytesDownloaded,
+                                progressPercentage ?? double.Parse("0.0"),
+                                () =>
+                                {
+                                    _BepinExInstallDebouncer = new Debouncer(
+                                        TimeSpan.FromSeconds(.2),
+                                        () =>
                                         {
-                                            ZipFile.ExtractToDirectory(downloadPath, SelectedFolder, true);
-                                            Console.WriteLine("Extracting BepinEx v5.4.19.0 to install directory");
+                                            this.Dispatcher.Invoke(() =>
+                                            {
+                                                ZipFile.ExtractToDirectory(downloadPath, SelectedFolder, true);
+                                                Console.WriteLine("Extracting BepinEx v5.4.19.0 to install directory");
 
-                                            Console.WriteLine("Extracted BepinEx v5.4.19.0 to install directory");
-                                            StartDiscordGameSDKDownload();
-                                        });
-                                    }
-                                );
-                                _BepinExInstallDebouncer.Invoke();
-                            }
-                        );
+                                                Console.WriteLine("Extracted BepinEx v5.4.19.0 to install directory");
+                                                StartDiscordGameSDKDownload();
+                                            });
+                                        }
+                                    );
+                                    _BepinExInstallDebouncer.Invoke();
+                                }
+                            );
+                        });
                     };
                     await client.StartDownload();
                 });
@@ -234,36 +254,39 @@ namespace Invaxion_Server_Emulator_Installer
                     HttpClientDownloadWithProgress client = new(downloadLink, downloadPath);
                     client.ProgressChanged += (totalFileSize, totalBytesDownloaded, progressPercentage) =>
                     {
-                        LogProgress(
-                            name,
-                            (long)totalFileSize,
-                            (long)totalBytesDownloaded,
-                            (double)progressPercentage,
-                            () =>
-                            {
-                                _DiscordGameSDKInstallDebouncer = new Debouncer(
-                                    TimeSpan.FromSeconds(.2),
-                                    () =>
-                                    {
-                                        this.Dispatcher.Invoke(() =>
+                        this.Dispatcher.Invoke(() =>
+                        {
+                            LogProgress(
+                                name,
+                                totalFileSize ?? long.Parse("0"),
+                                totalBytesDownloaded,
+                                progressPercentage ?? double.Parse("0.0"),
+                                () =>
+                                {
+                                    _DiscordGameSDKInstallDebouncer = new Debouncer(
+                                        TimeSpan.FromSeconds(.2),
+                                        () =>
                                         {
-                                            ZipFile.ExtractToDirectory(downloadPath, extractionPath, true);
+                                            this.Dispatcher.Invoke(() =>
+                                            {
+                                                ZipFile.ExtractToDirectory(downloadPath, extractionPath, true);
 
-                                            Console.WriteLine("Extracting discord_game_sdk_2.5.6.zip");
-                                            Console.WriteLine("Extracted discord_game_sdk_2.5.6.zip");
+                                                Console.WriteLine("Extracting discord_game_sdk_2.5.6.zip");
+                                                Console.WriteLine("Extracted discord_game_sdk_2.5.6.zip");
 
-                                            File.Copy(
-                                                Path.Combine(extractionPath, "lib", "x86_64", "discord_game_sdk.dll"),
-                                                Path.Combine(SelectedFolder, "INVAXION_Data", "Plugins", "discord_game_sdk.dll"),
-                                                true
-                                            );
-                                            StartModDownload();
-                                        });
-                                    }
-                                );
-                                _DiscordGameSDKInstallDebouncer.Invoke();
-                            }
-                        );
+                                                File.Copy(
+                                                    Path.Combine(extractionPath, "lib", "x86_64", "discord_game_sdk.dll"),
+                                                    Path.Combine(SelectedFolder, "INVAXION_Data", "Plugins", "discord_game_sdk.dll"),
+                                                    true
+                                                );
+                                                StartModDownload();
+                                            });
+                                        }
+                                    );
+                                    _DiscordGameSDKInstallDebouncer.Invoke();
+                                }
+                            );
+                        });
                     };
                     await client.StartDownload();
                 });
@@ -287,27 +310,30 @@ namespace Invaxion_Server_Emulator_Installer
                     HttpClientDownloadWithProgress client = new(downloadLink, downloadPath);
                     client.ProgressChanged += (totalFileSize, totalBytesDownloaded, progressPercentage) =>
                     {
-                        LogProgress(
-                            name,
-                            (long)totalFileSize,
-                            (long)totalBytesDownloaded,
-                            (double)progressPercentage,
-                            () =>
-                            {
-                                _ModInstallDebouncer = new Debouncer(
-                                    TimeSpan.FromSeconds(.2),
-                                    () =>
-                                    {
-                                        this.Dispatcher.Invoke(() =>
+                        this.Dispatcher.Invoke(() =>
+                        {
+                            LogProgress(
+                                name,
+                                totalFileSize ?? long.Parse("0"),
+                                totalBytesDownloaded,
+                                progressPercentage ?? double.Parse("0.0"),
+                                () =>
+                                {
+                                    _ModInstallDebouncer = new Debouncer(
+                                        TimeSpan.FromSeconds(.2),
+                                        () =>
                                         {
-                                            Console.WriteLine("Downloaded ServerEmulator.dll");
-                                            DownloadGamePatches();
-                                        });
-                                    }
-                                );
-                                _ModInstallDebouncer.Invoke();
-                            }
-                        );
+                                            this.Dispatcher.Invoke(() =>
+                                            {
+                                                Console.WriteLine("Downloaded ServerEmulator.dll");
+                                                DownloadGamePatches();
+                                            });
+                                        }
+                                    );
+                                    _ModInstallDebouncer.Invoke();
+                                }
+                            );
+                        });
                     };
                     await client.StartDownload();
                 });
@@ -331,41 +357,44 @@ namespace Invaxion_Server_Emulator_Installer
                     HttpClientDownloadWithProgress client = new(downloadLink, downloadPath);
                     client.ProgressChanged += (totalFileSize, totalBytesDownloaded, progressPercentage) =>
                     {
-                        LogProgress(
-                            name,
-                            (long)totalFileSize,
-                            (long)totalBytesDownloaded,
-                            (double)progressPercentage,
-                            () =>
-                            {
-                                _GamePatchesInstallDebouncer = new Debouncer(
-                                    TimeSpan.FromSeconds(.25),
-                                    () =>
-                                    {
-                                        this.Dispatcher.Invoke(() =>
+                        this.Dispatcher.Invoke(() =>
+                        {
+                            LogProgress(
+                                name,
+                                totalFileSize ?? long.Parse("0"),
+                                totalBytesDownloaded,
+                                progressPercentage ?? double.Parse("0.0"),
+                                () =>
+                                {
+                                    _GamePatchesInstallDebouncer = new Debouncer(
+                                        TimeSpan.FromSeconds(.25),
+                                        () =>
                                         {
-                                            Console.WriteLine("Downloaded INVAXION_patches.zip");
+                                            this.Dispatcher.Invoke(() =>
+                                            {
+                                                Console.WriteLine("Downloaded INVAXION_patches.zip");
 
-                                            try
-                                            {
-                                                Console.WriteLine("Extracting INVAXION_patches.zip");
-                                                ZipFile.ExtractToDirectory(downloadPath, extractionPath, true);
-                                            }
-                                            catch (Exception exception)
-                                            {
-                                                Console.WriteLine(exception);
-                                                throw;
-                                            }
-                                            Console.WriteLine("Extracted INVAXION_patches.zip");
-                                            PBar.IsIndeterminate = false;
-                                            PBar.Value = 100;
-                                            CleanUp();
-                                        });
-                                    }
-                                );
-                                _GamePatchesInstallDebouncer.Invoke();
-                            }
-                        );
+                                                try
+                                                {
+                                                    Console.WriteLine("Extracting INVAXION_patches.zip");
+                                                    ZipFile.ExtractToDirectory(downloadPath, extractionPath, true);
+                                                }
+                                                catch (Exception exception)
+                                                {
+                                                    Console.WriteLine(exception);
+                                                    throw;
+                                                }
+                                                Console.WriteLine("Extracted INVAXION_patches.zip");
+                                                PBar.IsIndeterminate = false;
+                                                PBar.Value = 100;
+                                                CleanUp();
+                                            });
+                                        }
+                                    );
+                                    _GamePatchesInstallDebouncer.Invoke();
+                                }
+                            );
+                        });
                     };
                     await client.StartDownload();
                 });

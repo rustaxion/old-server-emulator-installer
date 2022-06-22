@@ -33,7 +33,6 @@ namespace Invaxion_Server_Emulator_Installer
         private async Task DownloadFileFromHttpResponseMessage(HttpResponseMessage response)
         {
             response.EnsureSuccessStatusCode();
-
             var totalBytes = response.Content.Headers.ContentLength;
 
             using var contentStream = await response.Content.ReadAsStreamAsync();
