@@ -35,7 +35,7 @@ namespace Invaxion_Server_Emulator_Installer
             response.EnsureSuccessStatusCode();
             var totalBytes = response.Content.Headers.ContentLength;
 
-            using var contentStream = await response.Content.ReadAsStreamAsync();
+            await using var contentStream = await response.Content.ReadAsStreamAsync();
             await ProcessContentStream(totalBytes, contentStream);
         }
 
@@ -46,7 +46,7 @@ namespace Invaxion_Server_Emulator_Installer
             var buffer = new byte[8192];
             var isMoreToRead = true;
 
-            using var fileStream = new FileStream(_destinationFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
+            await using var fileStream = new FileStream(_destinationFilePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, true);
             do
             {
                 var bytesRead = await contentStream.ReadAsync(buffer);

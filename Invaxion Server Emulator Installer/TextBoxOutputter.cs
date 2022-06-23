@@ -25,9 +25,6 @@ namespace Invaxion_Server_Emulator_Installer
             );
         }
 
-        public override Encoding Encoding
-        {
-            get { return System.Text.Encoding.UTF8; }
-        }
+        public override Encoding Encoding => System.Text.Encoding.UTF8;
     }
 }

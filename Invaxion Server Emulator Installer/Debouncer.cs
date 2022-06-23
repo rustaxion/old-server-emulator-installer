@@ -7,10 +7,10 @@ namespace Invaxion_Server_Emulator_Installer
 {
     internal class Debouncer : IDisposable
     {
-        readonly TimeSpan _ts;
-        readonly Action _action;
-        readonly HashSet<ManualResetEvent> _resets = new HashSet<ManualResetEvent>();
-        readonly object _mutex = new object();
+        private readonly TimeSpan _ts;
+        private readonly Action _action;
+        private readonly HashSet<ManualResetEvent> _resets = new HashSet<ManualResetEvent>();
+        private readonly object _mutex = new object();
 
         public Debouncer(TimeSpan timespan, Action action)
         {
