@@ -45,7 +45,8 @@ namespace Invaxion_Server_Emulator_Installer
             if (e.ExtentHeightChange == 0)
                 return;
             var lines = outputter.LogBlock.Text.Split("\n");
-            _statusLabel.Content = lines[^2];
+            _statusLabel.Content = lines[^2].Substring(11);
+            ;
         }
 
         public MainWindow()
@@ -53,7 +54,7 @@ namespace Invaxion_Server_Emulator_Installer
             InitializeComponent();
             outputter = new TextBoxOutputter(ProgressLog);
             Console.SetOut(outputter);
-            Console.WriteLine("Waiting for input...");
+            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Waiting for input...");
             _installPathDebouncer = new Debouncer(TimeSpan.FromSeconds(.400), SetInstallPath);
             if (!File.Exists(_selectedFolder + "\\INVAXION.exe"))
                 StartInstallButton.IsEnabled = false;
@@ -67,28 +68,29 @@ namespace Invaxion_Server_Emulator_Installer
             var lines = outputter.LogBlock.Text.Split("\n");
             if (progressPercentage < 100)
             {
-                if (lines[^2].StartsWith($"Downloading {name} | "))
+                if (lines[^2].Contains($"Downloading {name} | "))
                 {
-                    lines[^2] = $"Downloading {name} | {progress}";
+                    lines[^2] = $"[{DateTime.Now.ToString("HH:mm:ss")}] Downloading {name} | {progress}";
                     outputter.LogBlock.Text = string.Join("\n", lines);
-                    _statusLabel.Content = lines[^2];
+                    _statusLabel.Content = lines[^2].Substring(11);
+                    ;
                 }
                 else
                 {
-                    Console.WriteLine($"Downloading {name} | {progress}");
+                    Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Downloading {name} | {progress}");
                 }
             }
             else
             {
-                if (lines[^2].StartsWith($"Downloading {name} | "))
+                if (lines[^2].Contains($"Downloading {name} | "))
                 {
-                    lines[^2] = $"Downloading {name} | {progress}";
+                    lines[^2] = $"[{DateTime.Now.ToString("HH:mm:ss")}] Downloading {name} | {progress}";
                     outputter.LogBlock.Text = string.Join("\n", lines);
-                    _statusLabel.Content = lines[^2];
+                    _statusLabel.Content = lines[^2].Substring(11);
                 }
                 else
                 {
-                    Console.WriteLine($"Downloading {name} | {progress}");
+                    Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Downloading {name} | {progress}");
                 }
                 onComplete();
             }
@@ -120,11 +122,11 @@ namespace Invaxion_Server_Emulator_Installer
                     _selectedFolder = InstallPath.Text;
                     _dialog.SelectedPath = InstallPath.Text;
                     StartInstallButton.IsEnabled = true;
-                    Console.WriteLine($"Install directory was successfully set to {_selectedFolder}");
+                    Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Install directory was successfully set to {_selectedFolder}");
                 }
                 else
                 {
-                    Console.WriteLine($"Invalid install directory selected: {_selectedFolder}");
+                    Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Invalid install directory selected: {_selectedFolder}");
                     StartInstallButton.IsEnabled = false;
                 }
             });
@@ -161,24 +163,24 @@ namespace Invaxion_Server_Emulator_Installer
 
         private static void StartCleaningUp()
         {
-            Console.WriteLine("Install completed, starting cleanup");
+            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Install completed, starting cleanup");
             var patchesPath = Path.Combine(Path.GetTempPath(), "INVAXION_patches.zip");
             var patchesExtractPath = Path.Combine(Path.GetTempPath(), "INVAXION_patches");
             var bepinexPath = Path.Combine(Path.GetTempPath(), "BepInEx_x64_5.4.19.0.zip");
             var discordGameDskDownloadPath = Path.Combine(Path.GetTempPath(), "discord_game_sdk_2.5.6.zip");
             var discordGameSdkExtractPath = Path.Combine(Path.GetTempPath(), "discord_game_sdk_2.5.6");
-            Console.WriteLine("Deleting discord_game_sdk_2.5.6.zip");
+            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleting discord_game_sdk_2.5.6.zip");
             File.Delete(discordGameDskDownloadPath);
-            Console.WriteLine("Deleted discord_game_sdk_2.5.6.zip");
+            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleted discord_game_sdk_2.5.6.zip");
             Directory.Delete(discordGameSdkExtractPath, true);
-            Console.WriteLine("Deleting BepInEx_x64_5.4.19.0.zip");
+            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleting BepInEx_x64_5.4.19.0.zip");
             File.Delete(bepinexPath);
-            Console.WriteLine("Deleted BepInEx_x64_5.4.19.0.zip");
-            Console.WriteLine("Deleting INVAXION_patches.zip");
+            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleted BepInEx_x64_5.4.19.0.zip");
+            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleting INVAXION_patches.zip");
             File.Delete(patchesPath);
-            Console.WriteLine("Deleted INVAXION_patches.zip");
+            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleted INVAXION_patches.zip");
             Directory.Delete(patchesExtractPath, true);
-            Console.WriteLine("Clean up completed successfully you may now close the window.");
+            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Clean up completed successfully you may now close the window.");
         }
 
         private void StartBepinExDownload()
@@ -209,9 +211,9 @@ namespace Invaxion_Server_Emulator_Installer
                                             this.Dispatcher.Invoke(() =>
                                             {
                                                 ZipFile.ExtractToDirectory(downloadPath, _selectedFolder, true);
-                                                Console.WriteLine("Extracting BepinEx v5.4.19.0 to install directory");
+                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracting BepinEx v5.4.19.0 to install directory");
 
-                                                Console.WriteLine("Extracted BepinEx v5.4.19.0 to install directory");
+                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracted BepinEx v5.4.19.0 to install directory");
                                                 StartDiscordGameSdkDownload();
                                             });
                                         }
@@ -261,8 +263,8 @@ namespace Invaxion_Server_Emulator_Installer
                                             {
                                                 ZipFile.ExtractToDirectory(downloadPath, extractionPath, true);
 
-                                                Console.WriteLine("Extracting discord_game_sdk_2.5.6.zip");
-                                                Console.WriteLine("Extracted discord_game_sdk_2.5.6.zip");
+                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracting discord_game_sdk_2.5.6.zip");
+                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracted discord_game_sdk_2.5.6.zip");
 
                                                 File.Copy(
                                                     Path.Combine(extractionPath, "lib", "x86_64", "discord_game_sdk.dll"),
@@ -315,7 +317,7 @@ namespace Invaxion_Server_Emulator_Installer
                                         {
                                             this.Dispatcher.Invoke(() =>
                                             {
-                                                Console.WriteLine("Downloaded ServerEmulator.dll");
+                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Downloaded ServerEmulator.dll");
                                                 DownloadGamePatches();
                                             });
                                         }
@@ -362,11 +364,11 @@ namespace Invaxion_Server_Emulator_Installer
                                         {
                                             this.Dispatcher.Invoke(() =>
                                             {
-                                                Console.WriteLine("Downloaded INVAXION_patches.zip");
+                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Downloaded INVAXION_patches.zip");
 
                                                 try
                                                 {
-                                                    Console.WriteLine("Extracting INVAXION_patches.zip");
+                                                    Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracting INVAXION_patches.zip");
                                                     ZipFile.ExtractToDirectory(downloadPath, extractionPath, true);
                                                     foreach (var dir in Directory.GetDirectories(Path.Combine(extractionPath, "patches-main"), "*", SearchOption.AllDirectories))
                                                     {
@@ -383,7 +385,7 @@ namespace Invaxion_Server_Emulator_Installer
                                                     Console.WriteLine(exception);
                                                     throw;
                                                 }
-                                                Console.WriteLine("Extracted INVAXION_patches.zip");
+                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracted INVAXION_patches.zip");
 
                                                 PBar.IsIndeterminate = false;
                                                 PBar.Value = 100;
