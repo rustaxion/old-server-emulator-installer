@@ -30,8 +30,8 @@ namespace Invaxion_Server_Emulator_Installer
         }
 
         private Debouncer _discordGameSdkInstallDebouncer = new(TimeSpan.FromSeconds(.200), () => { });
-        private Debouncer _gamePatchesInstallDebouncer = new(TimeSpan.FromSeconds(.200), () => { });
         private Debouncer _modInstallDebouncer = new(TimeSpan.FromSeconds(.200), () => { });
+        private Debouncer _zedrainsGameUpdatesDebouncer = new(TimeSpan.FromSeconds(.200), () => { });
         private Debouncer _bepinExInstallDebouncer = new(TimeSpan.FromSeconds(.200), () => { });
         private Debouncer _installPathDebouncer = new(TimeSpan.FromSeconds(.200), () => { });
         private VistaFolderBrowserDialog _dialog = new() { Description = "Please select game folder", UseDescriptionForTitle = true };
@@ -234,7 +234,7 @@ namespace Invaxion_Server_Emulator_Installer
                                 progressPercentage ?? 0d,
                                 () =>
                                 {
-                                    _bepinExInstallDebouncer = new Debouncer(
+                                    _zedrainsGameUpdatesDebouncer = new Debouncer(
                                         TimeSpan.FromSeconds(.2),
                                         () =>
                                         {
@@ -281,7 +281,7 @@ namespace Invaxion_Server_Emulator_Installer
                                             });
                                         }
                                     );
-                                    _bepinExInstallDebouncer.Invoke();
+                                    _zedrainsGameUpdatesDebouncer.Invoke();
                                 }
                             );
                         });
