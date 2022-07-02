@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Ookii.Dialogs.Wpf;
+using System;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
-using Ookii.Dialogs.Wpf;
 
 namespace Invaxion_Server_Emulator_Installer
 {
@@ -13,6 +14,21 @@ namespace Invaxion_Server_Emulator_Installer
     /// </summary>
     public partial class MainWindow : Window
     {
+        public static void CopyAll(DirectoryInfo source, DirectoryInfo target)
+        {
+            Directory.CreateDirectory(target.FullName);
+            foreach (FileInfo fi in source.GetFiles())
+            {
+                Console.WriteLine(@"Copying {0}\{1}", target.FullName, fi.Name);
+                fi.CopyTo(Path.Combine(target.FullName, fi.Name), true);
+            }
+            foreach (DirectoryInfo diSourceSubDir in source.GetDirectories())
+            {
+                DirectoryInfo nextTargetSubDir = target.CreateSubdirectory(diSourceSubDir.Name);
+                CopyAll(diSourceSubDir, nextTargetSubDir);
+            }
+        }
+
         private Debouncer _discordGameSdkInstallDebouncer = new(TimeSpan.FromSeconds(.200), () => { });
         private Debouncer _gamePatchesInstallDebouncer = new(TimeSpan.FromSeconds(.200), () => { });
         private Debouncer _modInstallDebouncer = new(TimeSpan.FromSeconds(.200), () => { });
@@ -146,7 +162,7 @@ namespace Invaxion_Server_Emulator_Installer
             ShowDialogButton.IsEnabled = false;
             StartInstallButton.IsEnabled = false;
             PBar.IsIndeterminate = true;
-            StartBepinExDownload();
+            DownloadZedRainUpdates();
         }
 
         private static string FormatFileSize(long bytes)
@@ -164,8 +180,6 @@ namespace Invaxion_Server_Emulator_Installer
         private static void StartCleaningUp()
         {
             Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Install completed, starting cleanup");
-            var patchesPath = Path.Combine(Path.GetTempPath(), "INVAXION_patches.zip");
-            var patchesExtractPath = Path.Combine(Path.GetTempPath(), "INVAXION_patches");
             var bepinexPath = Path.Combine(Path.GetTempPath(), "BepInEx_x64_5.4.19.0.zip");
             var discordGameDskDownloadPath = Path.Combine(Path.GetTempPath(), "discord_game_sdk_2.5.6.zip");
             var discordGameSdkExtractPath = Path.Combine(Path.GetTempPath(), "discord_game_sdk_2.5.6");
@@ -176,18 +190,112 @@ namespace Invaxion_Server_Emulator_Installer
             Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleting BepInEx_x64_5.4.19.0.zip");
             File.Delete(bepinexPath);
             Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleted BepInEx_x64_5.4.19.0.zip");
-            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleting INVAXION_patches.zip");
-            File.Delete(patchesPath);
-            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleted INVAXION_patches.zip");
-            Directory.Delete(patchesExtractPath, true);
+
+            var zedrainsUpdate = Path.Combine(Path.GetTempPath(), "ZedRain's_update_6.0.zip");
+            var zedrainsUpdateExtracted = Path.Combine(Path.GetTempPath(), "ZedRain's_update_6.0_extracted");
+            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleting ZedRain's_update_6.0.zip");
+            File.Delete(zedrainsUpdate);
+            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleted ZedRain's_update_6.0.zip");
+            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleting ZedRain's_update_6.0_extracted");
+            Directory.Delete(zedrainsUpdateExtracted, true);
+            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleted ZedRain's_update_6.0_extracted");
+
             Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Clean up completed successfully you may now close the window.");
+        }
+
+        private string GetFilenameFromLink(string link)
+        {
+            return link.TrimEnd('/').Split("/").Last();
+        }
+
+        private void DownloadZedRainUpdates()
+        {
+            const string downloadLink = "https://github.com/Invaxion-Server-Emulator/zedrain-private-server-game-assets/releases/download/6.0/6.0.zip";
+            var name = "ZedRain's_update_" + GetFilenameFromLink(downloadLink);
+            var downloadPath = Path.Combine(Path.GetTempPath(), name);
+            var extractPath = $"{downloadPath.Replace(".zip", "")}_extracted";
+            if (!Directory.Exists(extractPath))
+            {
+                Directory.CreateDirectory(extractPath);
+            }
+
+            Thread thread =
+                new(async () =>
+                {
+                    HttpClientDownloadWithProgress client = new(downloadLink, downloadPath);
+                    client.ProgressChanged += (totalFileSize, totalBytesDownloaded, progressPercentage) =>
+                    {
+                        this.Dispatcher.Invoke(() =>
+                        {
+                            LogProgress(
+                                name,
+                                totalFileSize ?? 0L,
+                                totalBytesDownloaded,
+                                progressPercentage ?? 0d,
+                                () =>
+                                {
+                                    _bepinExInstallDebouncer = new Debouncer(
+                                        TimeSpan.FromSeconds(.2),
+                                        () =>
+                                        {
+                                            this.Dispatcher.Invoke(() =>
+                                            {
+                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracting {name}...");
+                                                ZipFile.ExtractToDirectory(downloadPath, extractPath, true);
+                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracted {name}!");
+
+                                                var parentDir = extractPath;
+                                                var tries = 0;
+                                                while (tries < 5 && !parentDir.EndsWith("INVAXION_Data"))
+                                                {
+                                                    var directories = Directory.EnumerateDirectories(parentDir).ToArray();
+                                                    if (directories.Length == 1)
+                                                    {
+                                                        parentDir = directories[0];
+                                                    }
+                                                    else
+                                                    {
+                                                        foreach (var dir in directories)
+                                                        {
+                                                            if (dir.EndsWith("INVAXION_Data"))
+                                                            {
+                                                                parentDir = dir;
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+
+                                                if (tries >= 5 && !parentDir.EndsWith("INVAXION_Data"))
+                                                {
+                                                    Console.WriteLine("An Error has occured...");
+                                                    Thread.Sleep(1000);
+                                                    Application.Current.Shutdown();
+                                                }
+
+                                                Console.WriteLine($"Applying {name} to the game...");
+                                                CopyAll(new(parentDir), new(Path.Combine(_selectedFolder, "INVAXION_Data")));
+                                                File.Delete(Path.Combine(_selectedFolder, "INVAXION_Data", "Managed", "0Harmony.dll"));
+
+                                                StartBepinExDownload();
+                                            });
+                                        }
+                                    );
+                                    _bepinExInstallDebouncer.Invoke();
+                                }
+                            );
+                        });
+                    };
+                    await client.StartDownload();
+                });
+            thread.Start();
         }
 
         private void StartBepinExDownload()
         {
-            const string name = "BepinEx v5.4.19.0";
-            var downloadPath = Path.Combine(Path.GetTempPath(), "BepInEx_x64_5.4.19.0.zip");
             const string downloadLink = "https://github.com/BepInEx/BepInEx/releases/download/v5.4.19/BepInEx_x64_5.4.19.0.zip";
+            var name = GetFilenameFromLink(downloadLink);
+            var downloadPath = Path.Combine(Path.GetTempPath(), name);
 
             Thread thread =
                 new(async () =>
@@ -210,10 +318,10 @@ namespace Invaxion_Server_Emulator_Installer
                                         {
                                             this.Dispatcher.Invoke(() =>
                                             {
+                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracting {name} to install directory");
                                                 ZipFile.ExtractToDirectory(downloadPath, _selectedFolder, true);
-                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracting BepinEx v5.4.19.0 to install directory");
+                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracted {name} to install directory");
 
-                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracted BepinEx v5.4.19.0 to install directory");
                                                 StartDiscordGameSdkDownload();
                                             });
                                         }
@@ -318,82 +426,11 @@ namespace Invaxion_Server_Emulator_Installer
                                             this.Dispatcher.Invoke(() =>
                                             {
                                                 Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Downloaded ServerEmulator.dll");
-                                                DownloadGamePatches();
-                                            });
-                                        }
-                                    );
-                                    _modInstallDebouncer.Invoke();
-                                }
-                            );
-                        });
-                    };
-                    await client.StartDownload();
-                });
-            thread.Start();
-        }
-
-        private void DownloadGamePatches()
-        {
-            const string name = "Game patches v6.0";
-            const string downloadLink = "https://github.com/Invaxion-Server-Emulator/patches/releases/download/latest/patches-main.zip";
-            var downloadPath = Path.Combine(Path.GetTempPath(), "INVAXION_patches.zip");
-            var extractionPath = Path.Combine(Path.GetTempPath(), "INVAXION_patches");
-
-            if (!Directory.Exists(extractionPath))
-            {
-                Directory.CreateDirectory(extractionPath);
-            }
-            Thread thread =
-                new(async () =>
-                {
-                    HttpClientDownloadWithProgress client = new(downloadLink, downloadPath);
-                    client.ProgressChanged += (totalFileSize, totalBytesDownloaded, progressPercentage) =>
-                    {
-                        this.Dispatcher.Invoke(() =>
-                        {
-                            LogProgress(
-                                name,
-                                totalFileSize ?? long.Parse("0"),
-                                totalBytesDownloaded,
-                                progressPercentage ?? double.Parse("0.0"),
-                                () =>
-                                {
-                                    _gamePatchesInstallDebouncer = new Debouncer(
-                                        TimeSpan.FromSeconds(.25),
-                                        () =>
-                                        {
-                                            this.Dispatcher.Invoke(() =>
-                                            {
-                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Downloaded INVAXION_patches.zip");
-
-                                                try
-                                                {
-                                                    Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracting INVAXION_patches.zip");
-                                                    ZipFile.ExtractToDirectory(downloadPath, extractionPath, true);
-                                                    foreach (var dir in Directory.GetDirectories(Path.Combine(extractionPath, "patches-main"), "*", SearchOption.AllDirectories))
-                                                    {
-                                                        Directory.CreateDirectory(Path.Combine(_selectedFolder, dir[(Path.Combine(extractionPath, "patches-main").Length + 1)..]));
-                                                    }
-
-                                                    foreach (var fileName in Directory.GetFiles(Path.Combine(extractionPath, "patches-main"), "*", SearchOption.AllDirectories))
-                                                    {
-                                                        File.Copy(fileName, Path.Combine(_selectedFolder, fileName[(Path.Combine(extractionPath, "patches-main").Length + 1)..]), true);
-                                                    }
-                                                }
-                                                catch (Exception exception)
-                                                {
-                                                    Console.WriteLine(exception);
-                                                    throw;
-                                                }
-                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracted INVAXION_patches.zip");
-
-                                                PBar.IsIndeterminate = false;
-                                                PBar.Value = 100;
                                                 CleanUp();
                                             });
                                         }
                                     );
-                                    _gamePatchesInstallDebouncer.Invoke();
+                                    _modInstallDebouncer.Invoke();
                                 }
                             );
                         });
