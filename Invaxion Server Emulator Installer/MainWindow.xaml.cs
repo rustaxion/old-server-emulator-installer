@@ -396,7 +396,7 @@ namespace Invaxion_Server_Emulator_Installer
         private void StartModDownload()
         {
             const string name = "Invaxion Server Emu@latest";
-            const string downloadLink = "https://github.com/Invaxion-Server-Emulator/invaxion-server-emulator/releases/download/latest/ServerEmulator.dll";
+            const string downloadLink = "https://github.com/Invaxion-Server-Emulator/invaxion-server-emulator/releases/latest/download/ServerEmulator.dll";
             var downloadPath = Path.Combine(_selectedFolder, "BepInEx", "Plugins", "ServerEmulator.dll");
 
             if (!Directory.Exists(Path.Combine(_selectedFolder, "BepInEx", "Plugins")))
