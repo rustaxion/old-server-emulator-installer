@@ -17,14 +17,15 @@ namespace Invaxion_Server_Emulator_Installer
         public static void CopyAll(DirectoryInfo source, DirectoryInfo target)
         {
             Directory.CreateDirectory(target.FullName);
-            foreach (FileInfo fi in source.GetFiles())
+            foreach (var fi in source.GetFiles())
             {
                 Console.WriteLine(@"Copying {0}\{1}", target.FullName, fi.Name);
                 fi.CopyTo(Path.Combine(target.FullName, fi.Name), true);
             }
-            foreach (DirectoryInfo diSourceSubDir in source.GetDirectories())
+            
+            foreach (var diSourceSubDir in source.GetDirectories())
             {
-                DirectoryInfo nextTargetSubDir = target.CreateSubdirectory(diSourceSubDir.Name);
+                var nextTargetSubDir = target.CreateSubdirectory(diSourceSubDir.Name);
                 CopyAll(diSourceSubDir, nextTargetSubDir);
             }
         }
@@ -34,6 +35,7 @@ namespace Invaxion_Server_Emulator_Installer
         private Debouncer _zedrainsGameUpdatesDebouncer = new(TimeSpan.FromSeconds(.200), () => { });
         private Debouncer _bepinExInstallDebouncer = new(TimeSpan.FromSeconds(.200), () => { });
         private Debouncer _installPathDebouncer = new(TimeSpan.FromSeconds(.200), () => { });
+        
         private VistaFolderBrowserDialog _dialog = new() { Description = "Please select game folder", UseDescriptionForTitle = true };
 
         private TextBoxOutputter outputter;
@@ -48,7 +50,7 @@ namespace Invaxion_Server_Emulator_Installer
             if (e.ExtentHeightChange == 0)
             {
                 // Content unchanged : user scroll event
-                _autoScroll = ScrollViewer.VerticalOffset == ScrollViewer.ScrollableHeight;
+                _autoScroll = Math.Abs(ScrollViewer.VerticalOffset - ScrollViewer.ScrollableHeight) < 0.01;
             }
 
             // Content scroll event : auto-scroll eventually
@@ -61,8 +63,7 @@ namespace Invaxion_Server_Emulator_Installer
             if (e.ExtentHeightChange == 0)
                 return;
             var lines = outputter.LogBlock.Text.Split("\n");
-            _statusLabel.Content = lines[^2].Substring(11);
-            ;
+            _statusLabel.Content = lines[^2][11..];
         }
 
         public MainWindow()
@@ -70,7 +71,7 @@ namespace Invaxion_Server_Emulator_Installer
             InitializeComponent();
             outputter = new TextBoxOutputter(ProgressLog);
             Console.SetOut(outputter);
-            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Waiting for input...");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Waiting for input...");
             _installPathDebouncer = new Debouncer(TimeSpan.FromSeconds(.400), SetInstallPath);
             if (!File.Exists(_selectedFolder + "\\INVAXION.exe"))
                 StartInstallButton.IsEnabled = false;
@@ -82,32 +83,22 @@ namespace Invaxion_Server_Emulator_Installer
         {
             var progress = $"{progressPercentage}% ({FormatFileSize(totalBytesDownloaded)}/{FormatFileSize(totalFileSize)})";
             var lines = outputter.LogBlock.Text.Split("\n");
-            if (progressPercentage < 100)
+           
+            if (!lines[^2].Contains($"Downloading {name} | "))
             {
-                if (lines[^2].Contains($"Downloading {name} | "))
-                {
-                    lines[^2] = $"[{DateTime.Now.ToString("HH:mm:ss")}] Downloading {name} | {progress}";
-                    outputter.LogBlock.Text = string.Join("\n", lines);
-                    _statusLabel.Content = lines[^2].Substring(11);
-                    ;
-                }
-                else
-                {
-                    Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Downloading {name} | {progress}");
-                }
+                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Downloading {name} | {progress}");
             }
             else
             {
-                if (lines[^2].Contains($"Downloading {name} | "))
-                {
-                    lines[^2] = $"[{DateTime.Now.ToString("HH:mm:ss")}] Downloading {name} | {progress}";
-                    outputter.LogBlock.Text = string.Join("\n", lines);
-                    _statusLabel.Content = lines[^2].Substring(11);
-                }
-                else
-                {
-                    Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Downloading {name} | {progress}");
-                }
+                lines[^2] = $"[{DateTime.Now:HH:mm:ss}] Downloading {name} | {progress}";
+                outputter.LogBlock.Text = string.Join("\n", lines);
+                _statusLabel.Content = lines[^2][11..];
+            }
+            
+            PBar.Value = progressPercentage;
+            
+            if (progressPercentage >= 100)
+            {
                 onComplete();
             }
         }
@@ -122,7 +113,8 @@ namespace Invaxion_Server_Emulator_Installer
                     "Please select game folder"
                 );
             }
-            if ((bool)_dialog.ShowDialog(this))
+            
+            if (true == _dialog.ShowDialog(this))
             {
                 _selectedFolder = _dialog.SelectedPath;
                 InstallPath.Text = _dialog.SelectedPath;
@@ -138,11 +130,11 @@ namespace Invaxion_Server_Emulator_Installer
                     _selectedFolder = InstallPath.Text;
                     _dialog.SelectedPath = InstallPath.Text;
                     StartInstallButton.IsEnabled = true;
-                    Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Install directory was successfully set to {_selectedFolder}");
+                    Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Install directory was successfully set to {_selectedFolder}");
                 }
                 else
                 {
-                    Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Invalid install directory selected: {_selectedFolder}");
+                    Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Invalid install directory selected: {_selectedFolder}");
                     StartInstallButton.IsEnabled = false;
                 }
             });
@@ -161,7 +153,6 @@ namespace Invaxion_Server_Emulator_Installer
                 Application.Current.Shutdown();
             ShowDialogButton.IsEnabled = false;
             StartInstallButton.IsEnabled = false;
-            PBar.IsIndeterminate = true;
             DownloadZedRainUpdates();
         }
 
@@ -179,28 +170,29 @@ namespace Invaxion_Server_Emulator_Installer
 
         private static void StartCleaningUp()
         {
-            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Install completed, starting cleanup");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Install completed, starting cleanup");
             var bepinexPath = Path.Combine(Path.GetTempPath(), "BepInEx_x64_5.4.19.0.zip");
             var discordGameDskDownloadPath = Path.Combine(Path.GetTempPath(), "discord_game_sdk_2.5.6.zip");
             var discordGameSdkExtractPath = Path.Combine(Path.GetTempPath(), "discord_game_sdk_2.5.6");
-            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleting discord_game_sdk_2.5.6.zip");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Deleting discord_game_sdk_2.5.6.zip");
             File.Delete(discordGameDskDownloadPath);
-            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleted discord_game_sdk_2.5.6.zip");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Deleted discord_game_sdk_2.5.6.zip");
             Directory.Delete(discordGameSdkExtractPath, true);
-            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleting BepInEx_x64_5.4.19.0.zip");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Deleting BepInEx_x64_5.4.19.0.zip");
             File.Delete(bepinexPath);
-            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleted BepInEx_x64_5.4.19.0.zip");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Deleted BepInEx_x64_5.4.19.0.zip");
 
-            var zedrainsUpdate = Path.Combine(Path.GetTempPath(), "ZedRain's_update_6.0.zip");
-            var zedrainsUpdateExtracted = Path.Combine(Path.GetTempPath(), "ZedRain's_update_6.0_extracted");
-            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleting ZedRain's_update_6.0.zip");
+            var zedrainsUpdate = Path.Combine(Path.GetTempPath(), "zedrain_update_0.1.2-server-ip-change.zip");
+            var zedrainsUpdateExtracted = Path.Combine(Path.GetTempPath(), "zedrain_update_0.1.2-server-ip-change_extracted");
+            
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Deleting zedrain_update_0.1.2-server-ip-change.zip");
             File.Delete(zedrainsUpdate);
-            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleted ZedRain's_update_6.0.zip");
-            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleting ZedRain's_update_6.0_extracted");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Deleted zedrain_update_0.1.2-server-ip-change.zip");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Deleting zedrain_update_0.1.2-server-ip-change_extracted");
             Directory.Delete(zedrainsUpdateExtracted, true);
-            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Deleted ZedRain's_update_6.0_extracted");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Deleted zedrain_update_0.1.2-server-ip-change_extracted");
 
-            Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Clean up completed successfully you may now close the window.");
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Clean up completed successfully you may now close the window.");
         }
 
         private string GetFilenameFromLink(string link)
@@ -210,8 +202,8 @@ namespace Invaxion_Server_Emulator_Installer
 
         private void DownloadZedRainUpdates()
         {
-            const string downloadLink = "https://github.com/Invaxion-Server-Emulator/zedrain-private-server-game-assets/releases/download/6.0/6.0.zip";
-            var name = "ZedRain's_update_" + GetFilenameFromLink(downloadLink);
+            const string downloadLink = "https://github.com/rustaxion/zedrain-private-server-game-assets/releases/download/7.0/0.1.2-server-ip-change.zip";
+            var name = "zedrain_update_" + GetFilenameFromLink(downloadLink);
             var downloadPath = Path.Combine(Path.GetTempPath(), name);
             var extractPath = $"{downloadPath.Replace(".zip", "")}_extracted";
             if (!Directory.Exists(extractPath))
@@ -235,14 +227,14 @@ namespace Invaxion_Server_Emulator_Installer
                                 () =>
                                 {
                                     _zedrainsGameUpdatesDebouncer = new Debouncer(
-                                        TimeSpan.FromSeconds(.2),
+                                        TimeSpan.FromSeconds(.5),
                                         () =>
                                         {
                                             this.Dispatcher.Invoke(() =>
                                             {
-                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracting {name}...");
+                                                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Extracting {name}...");
                                                 ZipFile.ExtractToDirectory(downloadPath, extractPath, true);
-                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracted {name}!");
+                                                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Extracted {name}!");
 
                                                 var parentDir = extractPath;
                                                 var tries = 0;
@@ -252,6 +244,7 @@ namespace Invaxion_Server_Emulator_Installer
                                                     if (directories.Length == 1)
                                                     {
                                                         parentDir = directories[0];
+                                                        tries++;
                                                     }
                                                     else
                                                     {
@@ -313,14 +306,14 @@ namespace Invaxion_Server_Emulator_Installer
                                 () =>
                                 {
                                     _bepinExInstallDebouncer = new Debouncer(
-                                        TimeSpan.FromSeconds(.2),
+                                        TimeSpan.FromSeconds(.5),
                                         () =>
                                         {
                                             this.Dispatcher.Invoke(() =>
                                             {
-                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracting {name} to install directory");
+                                                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Extracting {name} to install directory");
                                                 ZipFile.ExtractToDirectory(downloadPath, _selectedFolder, true);
-                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracted {name} to install directory");
+                                                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Extracted {name} to install directory");
 
                                                 StartDiscordGameSdkDownload();
                                             });
@@ -364,15 +357,15 @@ namespace Invaxion_Server_Emulator_Installer
                                 () =>
                                 {
                                     _discordGameSdkInstallDebouncer = new Debouncer(
-                                        TimeSpan.FromSeconds(.2),
+                                        TimeSpan.FromSeconds(.5),
                                         () =>
                                         {
                                             this.Dispatcher.Invoke(() =>
                                             {
                                                 ZipFile.ExtractToDirectory(downloadPath, extractionPath, true);
 
-                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracting discord_game_sdk_2.5.6.zip");
-                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Extracted discord_game_sdk_2.5.6.zip");
+                                                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Extracting discord_game_sdk_2.5.6.zip");
+                                                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Extracted discord_game_sdk_2.5.6.zip");
 
                                                 File.Copy(
                                                     Path.Combine(extractionPath, "lib", "x86_64", "discord_game_sdk.dll"),
@@ -420,12 +413,12 @@ namespace Invaxion_Server_Emulator_Installer
                                 () =>
                                 {
                                     _modInstallDebouncer = new Debouncer(
-                                        TimeSpan.FromSeconds(.2),
+                                        TimeSpan.FromSeconds(.5),
                                         () =>
                                         {
                                             this.Dispatcher.Invoke(() =>
                                             {
-                                                Console.WriteLine($"[{DateTime.Now.ToString("HH:mm:ss")}] Downloaded ServerEmulator.dll");
+                                                Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] Downloaded ServerEmulator.dll");
                                                 CleanUp();
                                             });
                                         }
